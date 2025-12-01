@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { NavigationDock } from "@/components/NavigationDock";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { Analytics } from "@vercel/analytics/react";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             </Routes>
             <NavigationDock />
           </BrowserRouter>
+          <Analytics />
         </TooltipProvider>
       </LanguageProvider>
     </ThemeProvider>
