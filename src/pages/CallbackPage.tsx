@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -6,8 +6,13 @@ export const CallbackPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { authenticate } = useAuth();
+  const processedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double execution in React Strict Mode
+    if (processedRef.current) return;
+    processedRef.current = true;
+
     // Debug logging
     console.log("Callback Page Loaded");
     console.log("Search Params:", searchParams.toString());

@@ -37,10 +37,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Construct login URL
     // Appending /login to ensure we hit the login page, not the landing page
-    const targetUrl = `${authUrl}/login?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}`;
-
+    // We explicitly request a token response type for SPA
+    const targetUrl = `${authUrl}/login?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=openid%20profile%20email`;
+    
+    console.log("Redirecting to login:", targetUrl);
     window.location.href = targetUrl;
   };
 
