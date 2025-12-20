@@ -306,7 +306,7 @@ export const SettingsManager = () => {
     try {
       await supabase.auth.signOut({ scope: 'global' });
       toast.success('ออกจากระบบทุกอุปกรณ์สำเร็จ');
-      window.location.href = '/login';
+      window.location.href = '/';
     } catch (error) {
       console.error('Error logging out all sessions:', error);
       toast.error('เกิดข้อผิดพลาด');
