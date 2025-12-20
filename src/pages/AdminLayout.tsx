@@ -13,7 +13,10 @@ import { cn } from "@/lib/utils";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { ContentManager } from "@/components/admin/ContentManager";
 import { SettingsManager } from "@/components/admin/SettingsManager";
+import { useAuth } from "@/contexts/AuthContext";
+
 export function AdminLayout() {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'content' | 'settings'>('dashboard');
   const [open, setOpen] = useState(false);
 
@@ -71,18 +74,25 @@ export function AdminLayout() {
               ))}
             </div>
           </div>
-          <div>
+          <div className="flex flex-col gap-2">
             <SidebarLink
               link={{
-                label: "Admin User",
+                label: user?.username || user?.email || "Admin",
                 href: "#",
                 icon: (
                   <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white shadow-lg">
-                    AD
+                    {user?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "A"}
                   </div>
                 ),
               }}
             />
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            >
+              <IconLogout className="h-4 w-4" />
+              {open && <span>ออกจากระบบ</span>}
+            </button>
           </div>
       </SidebarBody>
       </Sidebar>
@@ -102,7 +112,7 @@ export function AdminLayout() {
                   {activeTab === 'settings' && 'Settings'}
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                  Welcome back, Admin • {new Date().toLocaleDateString('th-TH', { 
+                  Welcome back, {user?.username || user?.first_name || 'Admin'} • {new Date().toLocaleDateString('th-TH', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
