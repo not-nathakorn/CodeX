@@ -8,6 +8,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { motion } from "framer-motion";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AUTH_HUB = import.meta.env.VITE_BLACKBOX_AUTH_URL || "https://bbh.codex-th.com";
 const CLIENT_ID = import.meta.env.VITE_BLACKBOX_CLIENT_ID;
@@ -17,7 +20,7 @@ export default function CallbackPage() {
   const [searchParams] = useSearchParams();
   const { setUserDirectly, refreshAuth } = useAuth();
   const processedRef = useRef(false);
-  const [status, setStatus] = useState("processing");
+  const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -33,8 +36,7 @@ export default function CallbackPage() {
         console.error("Auth Error:", error);
         setStatus("error");
         setErrorMessage(error);
-        setTimeout(() => navigate("/login?error=" + error), 2000);
-        return;
+        return; // Don't redirect automatically on error, let user read it
       }
 
       if (!code) {
@@ -80,21 +82,24 @@ export default function CallbackPage() {
           });
           
           // Redirect after a short delay to ensure state is propagated
-          const returnUrl = searchParams.get("state") || "/";
+          const storedReturnUrl = sessionStorage.getItem("return_url");
+          const returnUrl = searchParams.get("state") || storedReturnUrl || "/";
+          
+          // Clear stored URL to prevent sticky redirects
+          if (storedReturnUrl) sessionStorage.removeItem("return_url");
+
           console.log("➡️ Redirecting to:", returnUrl);
-          setTimeout(() => navigate(returnUrl), 800);
+          setTimeout(() => navigate(returnUrl), 1500); // Slightly longer delay for user to see success
           
         } else {
           console.error("Token exchange failed:", data);
           setStatus("error");
           setErrorMessage(data.error || "Token exchange failed");
-          setTimeout(() => navigate("/login?error=token_exchange_failed"), 2000);
         }
       } catch (err) {
         console.error("Callback error:", err);
         setStatus("error");
         setErrorMessage("Network error");
-        setTimeout(() => navigate("/login?error=callback_failed"), 2000);
       }
     };
 
@@ -102,34 +107,89 @@ export default function CallbackPage() {
   }, [searchParams, navigate, setUserDirectly, refreshAuth]);
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="text-center">
-        {status === "processing" && (
-          <>
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <h2 className="text-xl font-semibold">Processing Login...</h2>
-            <p className="text-gray-500">Please wait</p>
-          </>
-        )}
-        {status === "success" && (
-          <>
-            <div className="w-8 h-8 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-white">✓</span>
-            </div>
-            <h2 className="text-xl font-semibold text-green-600">Login Successful!</h2>
-            <p className="text-gray-500">Redirecting...</p>
-          </>
-        )}
-        {status === "error" && (
-          <>
-            <div className="w-8 h-8 bg-red-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-white">✕</span>
-            </div>
-            <h2 className="text-xl font-semibold text-red-600">Login Failed</h2>
-            <p className="text-gray-500">{errorMessage || "An error occurred"}</p>
-          </>
-        )}
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background transition-colors duration-500">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full"
+      >
+        <div className="glass rounded-2xl p-8 text-center relative overflow-hidden shadow-2xl">
+          
+          {/* Status-based Background Accent */}
+          <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${
+            status === "success" ? "from-green-500 to-emerald-500" :
+            status === "error" ? "from-red-500 to-orange-500" :
+            "from-primary via-accent to-primary animate-gradient-x"
+          }`} />
+
+          {status === "processing" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="mb-6 relative inline-flex items-center justify-center">
+                 <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
+                 <div className="relative bg-white dark:bg-slate-800 p-4 rounded-full shadow-lg border border-blue-100 dark:border-blue-900/50">
+                   <Loader2 className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin" />
+                 </div>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Authenticating</h2>
+              <p className="text-slate-500 dark:text-slate-400">Verifying secure credentials...</p>
+            </motion.div>
+          )}
+
+          {status === "success" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="mb-6 relative inline-flex items-center justify-center">
+                 <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl" />
+                 <div className="relative bg-white dark:bg-slate-800 p-4 rounded-full shadow-lg border border-green-100 dark:border-green-900/50">
+                   <CheckCircle2 className="w-10 h-10 text-green-500 dark:text-green-400" />
+                 </div>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Login Successful!</h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">Welcome back. Redirecting you now...</p>
+              
+              <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-green-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 1.5 }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {status === "error" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <div className="mb-6 relative inline-flex items-center justify-center">
+                 <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl" />
+                 <div className="relative bg-white dark:bg-slate-800 p-4 rounded-full shadow-lg border border-red-100 dark:border-red-900/50">
+                   <XCircle className="w-10 h-10 text-red-500 dark:text-red-400" />
+                 </div>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Login Failed</h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">
+                {errorMessage || "An unknown error occurred during authentication."}
+              </p>
+              
+              <Button 
+                onClick={() => navigate("/login")}
+                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900"
+              >
+                Try Again
+              </Button>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

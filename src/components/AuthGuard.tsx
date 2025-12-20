@@ -5,7 +5,7 @@
 import { useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLocation } from "react-router-dom";
-import LazyFallback from "./LazyFallback";
+import { AuthLoadingScreen } from "./AuthLoadingScreen";
 import { AccessDeniedScreen } from "./AccessDeniedScreen";
 
 interface AuthGuardProps {
@@ -14,7 +14,7 @@ interface AuthGuardProps {
 }
 
 export const AuthGuard = ({ children, requiredRole }: AuthGuardProps) => {
-  const { isAuthenticated, isLoading, login, role } = useAuth();
+  const { isAuthenticated, isLoading, login, loginWithRole, role } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -24,14 +24,19 @@ export const AuthGuard = ({ children, requiredRole }: AuthGuardProps) => {
     if (isLoading) return;
     if (!isAuthenticated) {
       sessionStorage.setItem("return_url", location.pathname + location.search);
-      login();
+      
+      if (requiredRole) {
+        loginWithRole(requiredRole);
+      } else {
+        login();
+      }
     }
-  }, [isAuthenticated, isLoading, login, location]);
+  }, [isAuthenticated, isLoading, login, loginWithRole, location, requiredRole]);
 
   // Skip guard visual for callback page
   if (location.pathname === "/callback") return <>{children}</>;
 
-  if (isLoading) return <LazyFallback message="Authenticating..." />;
+  if (isLoading) return <AuthLoadingScreen message="Checking Access..." subtitle="Please wait while we secure your connection" />;
 
   // Role check
   if (isAuthenticated && requiredRole && role !== requiredRole) {
