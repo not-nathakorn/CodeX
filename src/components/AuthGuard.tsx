@@ -70,19 +70,28 @@ const AccessDeniedScreen = ({ requiredRole }: { requiredRole: string }) => {
 };
 
 export const AuthGuard = ({ children, requiredRole }: AuthGuardProps) => {
-  const { isAuthenticated, isLoading, login, role } = useAuth();
+  const { isAuthenticated, isLoading, loginWithRole, role } = useAuth();
   const location = useLocation();
-
-  // Skip guard for callback page
-  if (location.pathname === "/callback") return <>{children}</>;
+  
+  const isCallbackPage = location.pathname === "/callback";
 
   useEffect(() => {
+    // Skip redirect for callback page
+    if (isCallbackPage) return;
     if (isLoading) return;
+    
+    // If not authenticated, redirect to login with required_role
     if (!isAuthenticated) {
       sessionStorage.setItem("return_url", location.pathname + location.search);
-      login();
+      // ✅ ส่ง required_role ไปใน URL ตามที่ BlackBox กำหนด
+      loginWithRole(requiredRole || "all");
     }
-  }, [isAuthenticated, isLoading, login, location]);
+  }, [isAuthenticated, isLoading, loginWithRole, location, isCallbackPage, requiredRole]);
+
+  // Skip guard for callback page
+  if (isCallbackPage) {
+    return <>{children}</>;
+  }
 
   if (isLoading) return <LoadingScreen />;
 
