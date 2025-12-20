@@ -16,6 +16,7 @@ interface AuthContextType {
   loginForUsers: () => void;
   logout: () => void;
   refreshAuth: () => Promise<void>;
+  setUserDirectly: (user: User) => void;
   isLoading: boolean;
 }
 
@@ -69,6 +70,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(serverUser);
   }, []);
 
+  // ✅ Direct user setting from callback (bypasses cookie dependency)
+  // This is needed because cross-domain cookies may not be set
+  const setUserDirectly = useCallback((newUser: User) => {
+    console.log('✅ User set directly from callback:', newUser.email);
+    setUser(newUser);
+    setIsLoading(false);
+  }, []);
+
   // ✅ Login with role indicator (shows badge on login page)
   // required_role: "admin" | "client" | "all"
   // - "admin" = Admin Only (shows amber badge)
@@ -109,6 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loginForUsers,
       logout,
       refreshAuth,
+      setUserDirectly,
       isLoading 
     }}>
       {children}

@@ -25,7 +25,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default function CallbackPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { refreshAuth, loginWithRole } = useAuth();
+  const { refreshAuth, loginWithRole, setUserDirectly } = useAuth();
   const processedRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -38,19 +38,24 @@ export default function CallbackPage() {
       const code = searchParams.get("code");
       const authError = searchParams.get("error");
 
+      console.log("🔐 Callback: Processing login...");
+
       // Handle errors from OAuth provider
       if (authError) {
-        console.error("Auth Error:", authError);
+        console.error("❌ Auth Error:", authError);
         setError(authError);
         return;
       }
 
       if (!code) {
+        console.log("⚠️ No code found, redirecting to home");
         navigate("/");
         return;
       }
 
       try {
+        console.log("📡 Exchanging code for tokens...");
+        
         // ✅ Exchange code for tokens
         const response = await fetch(`${AUTH_HUB}/api/oauth/token`, {
           method: "POST",
@@ -64,28 +69,37 @@ export default function CallbackPage() {
         });
 
         const data = await response.json();
+        console.log("📦 Token response:", { success: data.success, hasUser: !!data.user });
 
         if (data.success && data.user) {
-          // ✅ Refresh context (Cookie ถูก set แล้ว)
-          await refreshAuth();
+          console.log("✅ Login successful for:", data.user.email);
           
-          // Redirect to home or original page
+          // ✅ IMPORTANT: Set user directly from response
+          // This bypasses cookie dependency which may fail cross-domain
+          setUserDirectly(data.user);
+          
+          // Also try refreshAuth in background (production with cookies)
+          refreshAuth().catch(() => {
+            console.log("ℹ️ refreshAuth skipped (using direct user)");
+          });
+          
+          // Redirect to original page or home
           const returnUrl = searchParams.get("state") || "/";
+          console.log("🚀 Redirecting to:", returnUrl);
           navigate(returnUrl);
         } else {
-          console.error("Token exchange failed:", data);
-          // Check for specific error
+          console.error("❌ Token exchange failed:", data);
           const errorType = data.error || "token_exchange_failed";
           setError(errorType);
         }
       } catch (err) {
-        console.error("Callback error:", err);
+        console.error("❌ Callback error:", err);
         setError("callback_failed");
       }
     };
 
     handleCallback();
-  }, [searchParams, navigate, refreshAuth]);
+  }, [searchParams, navigate, refreshAuth, setUserDirectly]);
 
   // Handle retry login
   const handleRetry = () => {
